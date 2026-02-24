@@ -1,7 +1,7 @@
 // ====== Parámetros del proyecto ======
-const TARGET_COUNT = 100; // cambia si lo deseas
-const VIDEO_URL = 'https://youtu.be/dQw4w9WgXcQ'; // <-- reemplaza por tu video real
-const PROJECT_ID = 'proyecto-100'; // nombre lógico para separar datos
+const TARGET_COUNT = 10; // cambia si lo deseas
+const VIDEO_URL = 'https://youtu.be/G5AiWQqD9H4'; // <-- reemplaza por tu video real
+const PROJECT_ID = 'proyecto-10'; // nombre lógico para separar datos
 
 // ====== UI elements ======
 const counterEl = document.getElementById('counter');
@@ -36,10 +36,11 @@ countRef.on('value', (snap) => {
   updateStatus(val);
 });
 
+
 function updateStatus(val){
   if (val >= TARGET_COUNT){
-    statusEl.textContent = '¡Meta alcanzada!';
-    videoSection.classList.remove('hidden');
+    // Redirección automática al video cuando se alcance la meta
+    window.location.href = VIDEO_URL;
   } else {
     const remaining = TARGET_COUNT - val;
     statusEl.textContent = `Faltan ${remaining} pulsaciones para desbloquear el video.`;
