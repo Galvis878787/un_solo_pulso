@@ -3,23 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Un solo pulso · Proyecto 100</title>
+  <title>Un solo pulso · CHEC</title>
   <link rel="stylesheet" href="style.css" />
-  <meta name="description" content="Botón verde que, al llegar a 100 pulsaciones, desbloquea un video." />
+  <meta name="description" content="Presiona el botón verde. Al llegar a 10 pulsaciones, se reproducirá automáticamente el video." />
 </head>
 <body>
   <main class="container">
-  
-<header>
-  <img src="Chec logo.png" class="logo-chec" alt="Logo CHEC">
 
-  <h1>Un solo pulso, un mismo destino</h1>
-  <p class="subtitle">Presiona el botón y acompáñanos</p>
+    <header>
+      <!-- Logo CHEC -->
+      <img src="Chec logo.png" class="logo-chec" alt="Logo CHEC" />
 
-  <!-- Banner SAPHIRO debajo del título -->
-  <img src="fondo saphiro 1.png" class="banner-saphiro" alt="Banner Saphyro">
-</header>
-
+      <h1>Un solo pulso, un mismo destino</h1>
+      <p class="subtitle">Presiona el botón y acompáñanos</p>
+      <!-- (Banner eliminado; dejamos el diseño minimal con fondo sólido) -->
+    </header>
 
     <section class="card">
       <div class="counter-wrap">
@@ -42,12 +40,14 @@
     </footer>
   </main>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK (orden correcto) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 
-  <!-- Configuración (rellenar y renombrar config.example.js a config.js) -->
+  <!-- Configuración de Firebase -->
   <script src="config.js"></script>
+
+  <!-- Lógica de la página (envuelta en DOMContentLoaded en script.js) -->
   <script src="script.js"></script>
 </body>
 </html>
