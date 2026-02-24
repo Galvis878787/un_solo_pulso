@@ -1,0 +1,19 @@
+{
+  "rules": {
+    ".read": true,
+    "projects": {
+      "$projectId": {
+        "count": {
+          ".read": true,
+          ".write": "newData.isNumber() && (data.exists() ? newData.val() == data.val() + 1 : newData.val() == 1)"
+        },
+        "clicks": {
+          "$clientId": {
+            ".read": false,
+            ".write": "!data.exists() && newData.val() == true"
+          }
+        }
+      }
+    }
+  }
+}
