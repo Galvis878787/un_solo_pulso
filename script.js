@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   // ====== Parámetros del proyecto ======
-  const TARGET_COUNT = 2;                             // meta de pulsaciones (para probar rápido)
+  const TARGET_COUNT = 2;                              // meta (para validar rápido). Luego vuelve a 10.
   const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4'; // tu video
-  const PROJECT_ID   = 'proyecto-5';                  // cambia para “reiniciar” sin borrar
+  const PROJECT_ID   = 'proyecto-4';                   // cambia para “reiniciar” sin borrar
 
   // ====== DOM ======
   const counterEl     = document.getElementById('counter');
@@ -51,11 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Sólo dispara si CRUZA el umbral: de (< target) a (>= target)
     if (lastVal === null) {
-      // primera carga: sólo actualizamos UI, NO abrimos overlay aunque ya esté cumplido
-      updateStatus(val, /*fromLive*/false);
+      updateStatus(val, /*shouldOpen*/false); // primera carga: NO abrir
     } else {
       const crossed = lastVal < TARGET_COUNT && val >= TARGET_COUNT;
-      updateStatus(val, /*fromLive*/crossed);
+      updateStatus(val, crossed);
     }
     lastVal = val;
   });
@@ -137,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
     playbackStarted = false;
   }
-  if (closeVideo){ closeVideo.addEventListener('click', closeOverlayFn); }
+  if (closeVideo){ closeOverlayFn; closeVideo.addEventListener('click', closeOverlayFn); }
 
   // ====== Botón principal ======
   if (pulseBtn) {

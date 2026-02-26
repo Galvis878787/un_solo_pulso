@@ -105,28 +105,24 @@ img { max-width: 100%; height: auto; }
 /* Bloquear scroll del body cuando el overlay está abierto */
 body.noscroll{ overflow: hidden; }
 
-/* ===== Countdown mejorado (MUY visibles) ===== */
+/* ===== Countdown mejorado (MUY visible) ===== */
 .countdown-wrap{
   text-align:center; color:#e2e8f0;
   display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center;
 }
-
 .countdown-number{
-  font-size: clamp(5rem, 18vw, 14rem); /* móvil→desktop */
+  font-size: clamp(5rem, 18vw, 14rem);
   font-weight: 900;
   line-height: 1;
   color:#f7f7f7;
-  text-shadow:
-    0 0 24px rgba(255,255,255,.18),
-    0 0 60px rgba(255,255,255,.10);
+  text-shadow: 0 0 24px rgba(255,255,255,.18),
+               0 0 60px rgba(255,255,255,.10);
   animation: pulseZoom 900ms ease-in-out infinite alternate;
 }
-
 @keyframes pulseZoom {
   from { transform: scale(0.96); }
   to   { transform: scale(1.04);  }
 }
-
 .countdown-label{
   color:#d1d5db;
   font-size: clamp(1rem, 3vw, 1.4rem);

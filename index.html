@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+d<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Un solo pulso · CHEC</title>
-  style.css
+  <link rel="stylesheet" href="style.css" />
   <meta name="description" content="Presiona el botón verde. Al llegar a la meta, se reproducirá el video en pantalla completa tras una cuenta regresiva." />
 </head>
 <body>
@@ -12,7 +12,7 @@
 
     <header>
       <!-- Logo CHEC -->
-      Chec logo.png
+      <img src="Chec logo.png" class="logo-chec" alt="Logo CHEC" />
 
       <h1>Un solo pulso, un mismo destino</h1>
       <p class="subtitle">Presiona el botón y acompáñanos</p>
@@ -28,7 +28,7 @@
 
       <div class="note">Cada persona debería presionar solo una vez desde su dispositivo. 💚</div>
 
-      <!-- (Mantenido por compatibilidad) -->
+      <!-- Se mantiene por compatibilidad con flujos anteriores -->
       <div id="videoSection" class="video hidden">
         <p class="unlocked">¡Meta alcanzada! 🎉</p>
         <a id="videoLink" class="video-link" target="_blank" rel="noopener">Ver el video</a>
@@ -66,13 +66,13 @@
   </main>
 
   <!-- Firebase SDK (orden correcto) -->
-  https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js</script>
-  https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js</script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 
   <!-- Configuración de Firebase -->
-  config.js</script>
+  <script src="config.js"></script>
 
   <!-- Lógica de la página -->
-  script.js</script>
+  <script src="script.js"></script>
 </body>
 </html>
