@@ -112,7 +112,6 @@ body.noscroll{ overflow: hidden; }
 }
 
 .countdown-number{
-  /* Mucho más grande que antes */
   font-size: clamp(5rem, 18vw, 14rem); /* móvil→desktop */
   font-weight: 900;
   line-height: 1;

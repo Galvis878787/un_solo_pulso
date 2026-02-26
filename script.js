@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   // ====== Parámetros del proyecto ======
-  const TARGET_COUNT = 2;                             // meta de pulsaciones
+  const TARGET_COUNT = 2;                             // meta de pulsaciones (para probar rápido)
   const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4'; // tu video
   const PROJECT_ID   = 'proyecto-4';                  // cambia para “reiniciar” sin borrar
 
@@ -124,8 +124,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (videoOverlay) videoOverlay.classList.add('hidden');
     document.body.classList.remove('noscroll');
 
+    // Re‑habilitar SIEMPRE el botón al cerrar el overlay
+    if (pulseBtn) pulseBtn.disabled = false;
+
     // Si cerraron durante countdown
     if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+
     // Permitir volver a iniciar si se vuelve a alcanzar la meta en otra campaña
     playbackStarted = false;
   }
@@ -147,57 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const cid = getClientId();
 
       try {
-        await clicksRef.child(cid).set(true); // 1) marca por dispositivo
+        await clicksRef.child(cid).set(true);                                   // 1) marca por dispositivo
         await countRef.transaction((current) => (current === null ? 1 : current + 1)); // 2) +1
         markClicked();
       } catch (e){
         console.error(e);
-        alert('Ocurrió un error al registrar tu pulsación. Intenta de nuevo.');
-      }
-    });
-  }
-
-  // ====== Compartir ======
-  if (shareLink){
-    shareLink.addEventListener('click', (e)=>{
-      e.preventDefault();
-      const url = window.location.href;
-      if (navigator.share){
-        navigator.share({ title:'Un solo pulso', text:'Ayúdanos a llegar a la meta', url });
-      } else {
-        navigator.clipboard.writeText(url);
-        alert('Enlace copiado al portapapeles');
-      }
-    });
-  }
-
-  // ====== Utilidades ======
-  function getYouTubeId(url){
-    try {
-      const u = new URL(url);
-      if (u.hostname.includes('youtu.be'))   return u.pathname.replace('/', '');
-      if (u.searchParams.get('v'))           return u.searchParams.get('v');
-      if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/shorts/')[1];
-    } catch(_) {}
-    return url;
-  }
-
-  function getClientId(){
-    const key = `cid_${PROJECT_ID}`;
-    let cid = localStorage.getItem(key);
-    if (!cid){
-      cid = Math.random().toString(36).slice(2) + Date.now().toString(36);
-      localStorage.setItem(key, cid);
-    }
-    return cid;
-  }
-
-  async function requestFullScreen(el){
-    if (!el) return;
-    try {
-      if (el.requestFullscreen)           return await el.requestFullscreen();
-      if (el.webkitRequestFullscreen)     return el.webkitRequestFullscreen(); // iOS Safari
-      if (el.msRequestFullscreen)         return el.msRequestFullscreen();
-    } catch (e) { throw e; }
-  }
-});
