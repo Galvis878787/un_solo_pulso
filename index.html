@@ -4,19 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Un solo pulso · CHEC</title>
-  <link rel="stylesheet" href="style.css" />
-  <meta name="description" content="Presiona el botón verde. Al llegar a 10 pulsaciones, se reproducirá automáticamente el video." />
+  style.css
+  <meta name="description" content="Presiona el botón verde. Al llegar a 10 pulsaciones, se reproducirá el video en pantalla completa tras una cuenta regresiva." />
 </head>
 <body>
   <main class="container">
 
     <header>
       <!-- Logo CHEC -->
-      <img src="Chec logo.png" class="logo-chec" alt="Logo CHEC" />
+      Chec logo.png
 
       <h1>Un solo pulso, un mismo destino</h1>
       <p class="subtitle">Presiona el botón y acompáñanos</p>
-      <!-- (Banner eliminado; dejamos el diseño minimal con fondo sólido) -->
     </header>
 
     <section class="card">
@@ -29,6 +28,7 @@
 
       <div class="note">Cada persona debería presionar solo una vez desde su dispositivo. 💚</div>
 
+      <!-- Se mantiene por compatibilidad, aunque ya no usamos este flujo -->
       <div id="videoSection" class="video hidden">
         <p class="unlocked">¡Meta alcanzada! 🎉</p>
         <a id="videoLink" class="video-link" target="_blank" rel="noopener">Ver el video</a>
@@ -36,10 +36,10 @@
     </section>
 
     <footer>
-      <small>Hecho con amor · <a href="#" id="shareLink">Compartir</a></small>
+      <small>Hecho con amor · #Compartir</a></small>
     </footer>
 
-    <!-- ===== Overlay de Video + Cuenta Regresiva (NUEVO) ===== -->
+    <!-- ===== Overlay de Video + Cuenta Regresiva ===== -->
     <div id="videoOverlay" class="video-overlay hidden" aria-hidden="true">
       <!-- Botón cerrar -->
       <button id="closeVideo" class="close-video" aria-label="Cerrar video">✕</button>
@@ -67,13 +67,13 @@
   </main>
 
   <!-- Firebase SDK (orden correcto) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js</script>
+  https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js</script>
 
   <!-- Configuración de Firebase -->
-  <script src="config.js"></script>
+  config.js</script>
 
-  <!-- Lógica de la página (envuelta en DOMContentLoaded en script.js) -->
-  <script src="script.js"></script>
+  <!-- Lógica de la página -->
+  script.js</script>
 </body>
 </html>

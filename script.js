@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // ====== Parámetros del proyecto (ajústalos si lo deseas) ======
-  const TARGET_COUNT = 3;                            // meta de pulsaciones
-  const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4';// tu video (formato corto recomendado)
-  const PROJECT_ID   = 'proyecto-3';                  // cambia el ID para "reiniciar" sin borrar datos
+  // ====== Parámetros del proyecto ======
+  const TARGET_COUNT = 2;                             // meta de pulsaciones
+  const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4'; // tu video
+  const PROJECT_ID   = 'proyecto-4';                  // cambia para “reiniciar” sin borrar
 
-  // ====== Toma de referencias del DOM ======
+  // ====== DOM ======
   const counterEl     = document.getElementById('counter');
   const statusEl      = document.getElementById('status');
   const pulseBtn      = document.getElementById('pulseBtn');
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const shareLink     = document.getElementById('shareLink');
   const targetCountEl = document.getElementById('target-count'); // opcional
 
-  // Overlay / Countdown / Video (NUEVO)
+  // Overlay / Countdown / Video
   const videoOverlay   = document.getElementById('videoOverlay');
   const closeVideo     = document.getElementById('closeVideo');
   const countdownWrap  = document.getElementById('countdownWrap');
@@ -35,31 +35,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const countRef  = db.ref(`projects/${PROJECT_ID}/count`);
   const clicksRef = db.ref(`projects/${PROJECT_ID}/clicks`);
 
-  // ====== Estado local para evitar doble clic desde el mismo dispositivo ======
+  // ====== Anti multi-clic básico ======
   const localKey = `clicked_${PROJECT_ID}`;
   const alreadyClicked = () => localStorage.getItem(localKey) === '1';
   const markClicked    = () => localStorage.setItem(localKey, '1');
 
-  // ====== Suscripción en tiempo real al contador ======
+  // ====== Realtime ======
   countRef.on('value', (snap) => {
     const val = snap.exists() ? snap.val() : 0;
     if (counterEl) counterEl.textContent = String(val);
     updateStatus(val);
   });
 
-  // ====== Cuenta regresiva / reproducción ======
-  let playbackStarted = false; // evita disparos múltiples
+  // ====== Countdown / reproducción ======
+  let playbackStarted = false;
   let countdownTimer  = null;
 
   function updateStatus(val){
     if (!statusEl) return;
 
     if (val >= TARGET_COUNT){
-      if (playbackStarted) return; // no repetir
+      if (playbackStarted) return;
       playbackStarted = true;
 
+      // Mostrar overlay + countdown
       openOverlay();
-      startCountdown(5); // 5→0 y luego reproducir
+      startCountdown(5); // 5 → 0
     } else {
       const remaining = TARGET_COUNT - val;
       statusEl.textContent = `Faltan ${remaining} pulsaciones para desbloquear el video.`;
@@ -68,9 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function startCountdown(from){
+    // Deshabilitar botón durante la cuenta regresiva
+    if (pulseBtn) pulseBtn.disabled = true;
+
     if (!countdownNumEl || !countdownWrap){
-      // fallback: si no existe el contenedor, reproducimos
-      startVideo();
+      startVideo(); // fallback si no existe el contenedor
       return;
     }
     let n = from;
@@ -98,7 +101,12 @@ document.addEventListener('DOMContentLoaded', () => {
     videoFrame.src = embedUrl;
 
     videoFrameWrap.classList.remove('hidden');
-    requestFullScreen(videoOverlay);
+
+    // Intentar pantalla completa automáticamente (puede fallar si el navegador lo bloquea)
+    requestFullScreen(videoOverlay).catch(()=>{ /* fallback: overlay visible */ });
+
+    // Rehabilitar el botón (por si luego cierran el overlay)
+    if (pulseBtn) pulseBtn.disabled = false;
   }
 
   function openOverlay(){
@@ -107,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.classList.add('noscroll');
     }
   }
+
   function closeOverlayFn(){
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(()=>{});
@@ -115,13 +124,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (videoOverlay) videoOverlay.classList.add('hidden');
     document.body.classList.remove('noscroll');
 
+    // Si cerraron durante countdown
     if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+    // Permitir volver a iniciar si se vuelve a alcanzar la meta en otra campaña
+    playbackStarted = false;
   }
+
   if (closeVideo){
     closeVideo.addEventListener('click', closeOverlayFn);
   }
 
-  // ====== Lógica del botón ======
+  // ====== Botón principal ======
   if (pulseBtn) {
     pulseBtn.addEventListener('click', async () => {
       if (!statusEl) return;
@@ -134,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const cid = getClientId();
 
       try {
-        await clicksRef.child(cid).set(true);                       // 1) marca por dispositivo
+        await clicksRef.child(cid).set(true); // 1) marca por dispositivo
         await countRef.transaction((current) => (current === null ? 1 : current + 1)); // 2) +1
         markClicked();
       } catch (e){
@@ -144,17 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function getClientId(){
-    const key = `cid_${PROJECT_ID}`;
-    let cid = localStorage.getItem(key);
-    if (!cid){
-      cid = Math.random().toString(36).slice(2) + Date.now().toString(36);
-      localStorage.setItem(key, cid);
-    }
-    return cid;
-  }
-
-  // ====== Compartir enlace ======
+  // ====== Compartir ======
   if (shareLink){
     shareLink.addEventListener('click', (e)=>{
       e.preventDefault();
@@ -179,12 +182,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return url;
   }
 
+  function getClientId(){
+    const key = `cid_${PROJECT_ID}`;
+    let cid = localStorage.getItem(key);
+    if (!cid){
+      cid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem(key, cid);
+    }
+    return cid;
+  }
+
   async function requestFullScreen(el){
+    if (!el) return;
     try {
-      if (!el) return;
-      if (el.requestFullscreen)           await el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      else if (el.msRequestFullscreen)     el.msRequestFullscreen();
-    } catch(_){ /* Si falla, mantenemos overlay visible como fallback */ }
+      if (el.requestFullscreen)           return await el.requestFullscreen();
+      if (el.webkitRequestFullscreen)     return el.webkitRequestFullscreen(); // iOS Safari
+      if (el.msRequestFullscreen)         return el.msRequestFullscreen();
+    } catch (e) { throw e; }
   }
 });

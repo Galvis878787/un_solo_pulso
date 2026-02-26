@@ -1,79 +1,136 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Un solo pulso · CHEC</title>
-  <link rel="stylesheet" href="style.css" />
-  <meta name="description" content="Presiona el botón verde. Al llegar a 10 pulsaciones, se reproducirá automáticamente el video." />
-</head>
-<body>
-  <main class="container">
+/* Reset básico + tipografía + color de texto */
+* { box-sizing: border-box; }
 
-    <header>
-      <!-- Logo CHEC -->
-      <img src="Chec logo.png" class="logo-chec" alt="Logo CHEC" />
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, sans-serif;
+  color: #e2e8f0;
+  min-height: 100dvh; /* altura real en móviles */
+}
 
-      <h1>Un solo pulso, un mismo destino</h1>
-      <p class="subtitle">Presiona el botón y acompáñanos</p>
-      <!-- (Banner eliminado; dejamos el diseño minimal con fondo sólido) -->
-    </header>
+/* Fondo sólido (sin imagen) */
+body { background-color: #0f172a; }
 
-    <section class="card">
-      <div class="counter-wrap">
-        <div class="counter" id="counter">0</div>
-        <div class="status" id="status">Ayúdanos a alcanzar la meta ✨</div>
-      </div>
+/* Logo CHEC */
+.logo-chec {
+  width: 180px;
+  display: block;
+  margin: 0 auto 20px auto;
+}
 
-      <button id="pulseBtn" class="pulse-btn">Presionar</button>
+/* Layout general */
+.container { max-width: 780px; margin: 0 auto; padding: 32px 20px; }
+header { text-align: center; margin-bottom: 24px; }
+h1 { font-size: clamp(1.6rem, 2.5vw, 2.4rem); margin: 8px 0; }
+.subtitle { color: #94a3b8; }
 
-      <div class="note">Cada persona debería presionar solo una vez desde su dispositivo. 💚</div>
+/* Caja del contenido (contador/botón) encima de todo */
+.card {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.3);
+  position: relative;
+  z-index: 2; /* garantiza clics sobre el botón */
+}
 
-      <div id="videoSection" class="video hidden">
-        <p class="unlocked">¡Meta alcanzada! 🎉</p>
-        <a id="videoLink" class="video-link" target="_blank" rel="noopener">Ver el video</a>
-      </div>
-    </section>
+/* Contador y estado */
+.counter-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 18px; }
+.counter { font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; color: #22c55e; text-shadow: 0 0 16px rgba(34,197,94,.35); }
+.status { color: #cbd5e1; }
 
-    <footer>
-      <small>Hecho con amor · <a href="#" id="shareLink">Compartir</a></small>
-    </footer>
+/* Botón verde CHEC */
+.pulse-btn {
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: #8bc53f; /* verde CHEC */
+  color: #052e12;
+  box-shadow: 0 12px 20px rgba(139,197,63,.25), inset 0 -3px 0 rgba(0,0,0,.2);
+  transition: transform .05s ease, filter .2s ease, opacity .2s ease;
+}
+.pulse-btn:hover { filter: brightness(1.05); }
+.pulse-btn:active { transform: scale(.98); }
+.pulse-btn[disabled] { opacity:.5; cursor:not-allowed; }
 
-    <!-- ===== Overlay de Video + Cuenta Regresiva (NUEVO) ===== -->
-    <div id="videoOverlay" class="video-overlay hidden" aria-hidden="true">
-      <!-- Botón cerrar -->
-      <button id="closeVideo" class="close-video" aria-label="Cerrar video">✕</button>
+/* Varios */
+.note { margin-top: 12px; color: #94a3b8; font-size: .95rem; text-align: center; }
+.video { margin-top: 22px; text-align: center; }
+.hidden { display: none; }
+.unlocked { font-weight: 700; color: #fde68a; }
+.video-link { display: inline-block; margin-top: 10px; padding: 10px 16px; background: #0ea5e9; color: white; border-radius: 10px; text-decoration: none; }
+footer { margin-top: 28px; text-align: center; color: #64748b; }
+footer a { color: #60a5fa; }
 
-      <!-- Cuenta regresiva -->
-      <div id="countdownWrap" class="countdown-wrap">
-        <div class="countdown-number" id="countdownNumber">5</div>
-        <p class="countdown-label">El video iniciará en…</p>
-      </div>
+/* Seguridad general para imágenes */
+img { max-width: 100%; height: auto; }
 
-      <!-- Marco del video -->
-      <div class="video-frame-wrap hidden" id="videoFrameWrap">
-        <iframe
-          id="videoFrame"
-          class="video-frame"
-          title="Video"
-          frameborder="0"
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowfullscreen
-          referrerpolicy="strict-origin-when-cross-origin"></iframe>
-      </div>
-    </div>
-    <!-- ===== Fin overlay ===== -->
+/* Ajustes responsive menores */
+@media (max-width: 480px){
+  h1 { font-size: 1.6rem; }
+  .logo-chec { width: 150px; }
+}
 
-  </main>
+/* ===== Overlay de video / cuenta regresiva ===== */
+.video-overlay{
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.95);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
 
-  <!-- Firebase SDK (orden correcto) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+.video-frame-wrap{
+  width: 100%;
+  max-width: 1200px;
+  aspect-ratio: 16/9;
+  background:#000;
+}
 
-  <!-- Configuración de Firebase -->
-  <script src="config.js"></script>
+.video-frame{ width:100%; height:100%; display:block; border:0; }
 
-  <!-- Lógica de la página (envuelta en DOMContentLoaded en script.js) -->
-  <script src="script.js"></script>
-</body>
-</html>
+.close-video{
+  position:absolute; top:16px; right:16px;
+  background: rgba(255,255,255,.15);
+  color:#fff; border:1px solid rgba(255,255,255,.25);
+  border-radius: 10px; padding:8px 12px; font-size:18px; cursor:pointer;
+}
+.close-video:hover{ background: rgba(255,255,255,.25); }
+
+/* Bloquear scroll del body cuando el overlay está abierto */
+body.noscroll{ overflow: hidden; }
+
+/* ===== Countdown mejorado (MUY visibles) ===== */
+.countdown-wrap{
+  text-align:center; color:#e2e8f0;
+  display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center;
+}
+
+.countdown-number{
+  /* Mucho más grande que antes */
+  font-size: clamp(5rem, 18vw, 14rem); /* móvil→desktop */
+  font-weight: 900;
+  line-height: 1;
+  color:#f7f7f7;
+  text-shadow:
+    0 0 24px rgba(255,255,255,.18),
+    0 0 60px rgba(255,255,255,.10);
+  animation: pulseZoom 900ms ease-in-out infinite alternate;
+}
+
+@keyframes pulseZoom {
+  from { transform: scale(0.96); }
+  to   { transform: scale(1.04);  }
+}
+
+.countdown-label{
+  color:#d1d5db;
+  font-size: clamp(1rem, 3vw, 1.4rem);
+  letter-spacing:.5px;
+  opacity:.95;
+}
