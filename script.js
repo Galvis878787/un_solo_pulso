@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ====== Parámetros del proyecto ======
   const TARGET_COUNT = 2;                              // meta (para validar rápido). Luego vuelve a 10.
   const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4'; // tu video
-  const PROJECT_ID   = 'proyecto-4';                   // cambia para “reiniciar” sin borrar
+  const PROJECT_ID   = 'proyecto-6';                   // cambia para “reiniciar” sin borrar
 
   // ====== DOM ======
   const counterEl     = document.getElementById('counter');
