@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ====== Parámetros del proyecto ======
   const TARGET_COUNT = 2;                             // meta de pulsaciones (para probar rápido)
   const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4'; // tu video
-  const PROJECT_ID   = 'proyecto-4';                  // cambia para “reiniciar” sin borrar
+  const PROJECT_ID   = 'proyecto-5';                  // cambia para “reiniciar” sin borrar
 
   // ====== DOM ======
   const counterEl     = document.getElementById('counter');
@@ -40,27 +40,38 @@ document.addEventListener('DOMContentLoaded', () => {
   const alreadyClicked = () => localStorage.getItem(localKey) === '1';
   const markClicked    = () => localStorage.setItem(localKey, '1');
 
-  // ====== Realtime ======
+  // ====== Realtime + detección de transición ======
+  let lastVal = null;          // último valor visto
+  let playbackStarted = false; // evita disparos múltiples
+  let countdownTimer  = null;
+
   countRef.on('value', (snap) => {
     const val = snap.exists() ? snap.val() : 0;
     if (counterEl) counterEl.textContent = String(val);
-    updateStatus(val);
+
+    // Sólo dispara si CRUZA el umbral: de (< target) a (>= target)
+    if (lastVal === null) {
+      // primera carga: sólo actualizamos UI, NO abrimos overlay aunque ya esté cumplido
+      updateStatus(val, /*fromLive*/false);
+    } else {
+      const crossed = lastVal < TARGET_COUNT && val >= TARGET_COUNT;
+      updateStatus(val, /*fromLive*/crossed);
+    }
+    lastVal = val;
   });
 
-  // ====== Countdown / reproducción ======
-  let playbackStarted = false;
-  let countdownTimer  = null;
-
-  function updateStatus(val){
+  function updateStatus(val, shouldOpen){
     if (!statusEl) return;
 
     if (val >= TARGET_COUNT){
-      if (playbackStarted) return;
-      playbackStarted = true;
+      statusEl.textContent = '¡Meta alcanzada! 🎉';
+      if (videoSection) videoSection.classList.remove('hidden');
 
-      // Mostrar overlay + countdown
-      openOverlay();
-      startCountdown(5); // 5 → 0
+      if (shouldOpen && !playbackStarted){
+        playbackStarted = true;
+        openOverlay();
+        startCountdown(5); // 5 → 0
+      }
     } else {
       const remaining = TARGET_COUNT - val;
       statusEl.textContent = `Faltan ${remaining} pulsaciones para desbloquear el video.`;
@@ -69,11 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function startCountdown(from){
-    // Deshabilitar botón durante la cuenta regresiva
     if (pulseBtn) pulseBtn.disabled = true;
 
     if (!countdownNumEl || !countdownWrap){
-      startVideo(); // fallback si no existe el contenedor
+      startVideo();
       return;
     }
     let n = from;
@@ -103,9 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
     videoFrameWrap.classList.remove('hidden');
 
     // Intentar pantalla completa automáticamente (puede fallar si el navegador lo bloquea)
-    requestFullScreen(videoOverlay).catch(()=>{ /* fallback: overlay visible */ });
+    requestFullScreen(videoOverlay).catch(()=>{ /* overlay visible como fallback */ });
 
-    // Rehabilitar el botón (por si luego cierran el overlay)
     if (pulseBtn) pulseBtn.disabled = false;
   }
 
@@ -124,19 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (videoOverlay) videoOverlay.classList.add('hidden');
     document.body.classList.remove('noscroll');
 
-    // Re‑habilitar SIEMPRE el botón al cerrar el overlay
     if (pulseBtn) pulseBtn.disabled = false;
-
-    // Si cerraron durante countdown
     if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
-
-    // Permitir volver a iniciar si se vuelve a alcanzar la meta en otra campaña
     playbackStarted = false;
   }
-
-  if (closeVideo){
-    closeVideo.addEventListener('click', closeOverlayFn);
-  }
+  if (closeVideo){ closeVideo.addEventListener('click', closeOverlayFn); }
 
   // ====== Botón principal ======
   if (pulseBtn) {
@@ -149,10 +150,58 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const cid = getClientId();
-
       try {
-        await clicksRef.child(cid).set(true);                                   // 1) marca por dispositivo
-        await countRef.transaction((current) => (current === null ? 1 : current + 1)); // 2) +1
+        await clicksRef.child(cid).set(true);
+        await countRef.transaction((current) => (current === null ? 1 : current + 1));
         markClicked();
       } catch (e){
         console.error(e);
+        alert('Ocurrió un error al registrar tu pulsación. Intenta de nuevo.');
+      }
+    });
+  }
+
+  // ====== Compartir ======
+  if (shareLink){
+    shareLink.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const url = window.location.href;
+      if (navigator.share){
+        navigator.share({ title:'Un solo pulso', text:'Ayúdanos a llegar a la meta', url });
+      } else {
+        navigator.clipboard.writeText(url);
+        alert('Enlace copiado al portapapeles');
+      }
+    });
+  }
+
+  // ====== Utilidades ======
+  function getYouTubeId(url){
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes('youtu.be'))   return u.pathname.replace('/', '');
+      if (u.searchParams.get('v'))           return u.searchParams.get('v');
+      if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/shorts/')[1];
+    } catch(_) {}
+    return url;
+  }
+
+  function getClientId(){
+    const key = `cid_${PROJECT_ID}`;
+    let cid = localStorage.getItem(key);
+    if (!cid){
+      cid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem(key, cid);
+    }
+    return cid;
+  }
+
+  async function requestFullScreen(el){
+    if (!el) return;
+    try {
+      if (el.requestFullscreen)           return await el.requestFullscreen();
+      if (el.webkitRequestFullscreen)     return el.webkitRequestFullscreen(); // iOS Safari
+      if (el.msRequestFullscreen)         return el.msRequestFullscreen();
+    } catch (_e) { /* fallback */ }
+  }
+});
