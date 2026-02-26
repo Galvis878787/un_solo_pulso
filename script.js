@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+
   // ====== Parámetros del proyecto ======
-  const TARGET_COUNT = 2;                               // meta (para validar rápido). Luego vuelve a 10.
+  const TARGET_COUNT = 2;                               // meta temporal para pruebas
   const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4';  // tu video
-  const PROJECT_ID   = 'proyecto-6';                    // cambia para “reiniciar” sin borrar
+  const PROJECT_ID   = 'proyecto-90';                   // ID de campaña
 
   // ====== Referencias del DOM ======
   const counterEl     = document.getElementById('counter');
@@ -21,29 +22,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const videoFrameWrap = document.getElementById('videoFrameWrap');
   const videoFrame     = document.getElementById('videoFrame');
 
-  // ====== Estado inicial SEGURO (evita overlay visible al cargar) ======
-  if (videoOverlay) videoOverlay.classList.add('hidden');  // garantiza display:none
-  document.body.classList.remove('noscroll');              // habilita scroll por si quedó bloqueado
-
-  // Si usas link a video por compatibilidad, lo actualizamos:
+  // ====== Estado inicial SEGURO ======
+  if (videoOverlay) videoOverlay.classList.add('hidden');
+  document.body.classList.remove('noscroll');
   if (targetCountEl) targetCountEl.textContent = String(TARGET_COUNT);
   if (videoLink)     videoLink.href = VIDEO_URL;
 
-  // ====== (A partir de aquí continúa tu lógica actual) ======
-  // - Firebase init
-  // - refs a countRef y clicksRef
-  // - anti-multi-clic
-  // - suscripción realtime con 'lastVal' y detección de cruce de meta
-  // - updateStatus(val, shouldOpen)
-  // - startCountdown(), startVideo()
-  // - openOverlay(), closeOverlayFn()
-  // - listener de pulseBtn y shareLink
-  // - utilidades (getYouTubeId, getClientId, requestFullScreen)
-});
-
   // ====== Firebase init ======
   if (typeof firebaseConfig === 'undefined') {
-    console.error('⚠️ No se encontró firebaseConfig. Verifica config.js y su orden de carga.');
+    console.error('⚠️ No se encontró firebaseConfig. Verifica config.js');
     return;
   }
   const app = firebase.initializeApp(firebaseConfig);
@@ -58,21 +45,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const markClicked    = () => localStorage.setItem(localKey, '1');
 
   // ====== Realtime + detección de transición ======
-  let lastVal = null;          // último valor visto
-  let playbackStarted = false; // evita disparos múltiples
+  let lastVal = null;
+  let playbackStarted = false;
   let countdownTimer  = null;
 
   countRef.on('value', (snap) => {
     const val = snap.exists() ? snap.val() : 0;
+
     if (counterEl) counterEl.textContent = String(val);
 
-    // Sólo dispara si CRUZA el umbral: de (< target) a (>= target)
-    if (lastVal === null) {
-      updateStatus(val, /*shouldOpen*/false); // primera carga: NO abrir
-    } else {
-      const crossed = lastVal < TARGET_COUNT && val >= TARGET_COUNT;
-      updateStatus(val, crossed);
-    }
+    const crossed = lastVal !== null && lastVal < TARGET_COUNT && val >= TARGET_COUNT;
+
+    updateStatus(val, crossed);
     lastVal = val;
   });
 
@@ -81,107 +65,106 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (val >= TARGET_COUNT){
       statusEl.textContent = '¡Meta alcanzada! 🎉';
-      if (videoSection) videoSection.classList.remove('hidden');
 
       if (shouldOpen && !playbackStarted){
         playbackStarted = true;
         openOverlay();
-        startCountdown(5); // 5 → 0
+        startCountdown(5);
       }
+
     } else {
       const remaining = TARGET_COUNT - val;
       statusEl.textContent = `Faltan ${remaining} pulsaciones para desbloquear el video.`;
-      if (videoSection) videoSection.classList.add('hidden');
     }
   }
 
+  // ====== Cuenta regresiva ======
   function startCountdown(from){
     if (pulseBtn) pulseBtn.disabled = true;
 
-    if (!countdownNumEl || !countdownWrap){
-      startVideo();
-      return;
-    }
     let n = from;
     countdownWrap.classList.remove('hidden');
     videoFrameWrap.classList.add('hidden');
     countdownNumEl.textContent = String(n);
 
     countdownTimer = setInterval(()=>{
-      n -= 1;
+      n--;
       if (n >= 0) countdownNumEl.textContent = String(n);
+
       if (n < 0){
         clearInterval(countdownTimer);
-        countdownTimer = null;
         countdownWrap.classList.add('hidden');
         startVideo();
       }
     }, 1000);
   }
 
+  // ====== Reproducir video ======
   function startVideo(){
-    if (!videoFrame || !videoFrameWrap) return;
-
-    const ytId     = getYouTubeId(VIDEO_URL);
+    const ytId = getYouTubeId(VIDEO_URL);
     const embedUrl = `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1`;
-    videoFrame.src = embedUrl;
 
+    videoFrame.src = embedUrl;
     videoFrameWrap.classList.remove('hidden');
 
-    // Intentar pantalla completa automáticamente (puede fallar si el navegador lo bloquea)
-    requestFullScreen(videoOverlay).catch(()=>{ /* overlay visible como fallback */ });
+    requestFullScreen(videoOverlay).catch(()=>{});
 
     if (pulseBtn) pulseBtn.disabled = false;
   }
 
+  // ====== Overlay ======
   function openOverlay(){
-    if (videoOverlay){
-      videoOverlay.classList.remove('hidden');
-      document.body.classList.add('noscroll');
-    }
+    videoOverlay.classList.remove('hidden');
+    document.body.classList.add('noscroll');
   }
 
   function closeOverlayFn(){
-    if (document.fullscreenElement) {
+    if (document.fullscreenElement){
       document.exitFullscreen().catch(()=>{});
     }
-    if (videoFrame) videoFrame.src = ''; // detener
-    if (videoOverlay) videoOverlay.classList.add('hidden');
+
+    videoFrame.src = '';
+    videoOverlay.classList.add('hidden');
     document.body.classList.remove('noscroll');
 
-    if (pulseBtn) pulseBtn.disabled = false;
-    if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
+    if (countdownTimer){
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+
     playbackStarted = false;
+    if (pulseBtn) pulseBtn.disabled = false;
   }
-  if (closeVideo){ closeOverlayFn; closeVideo.addEventListener('click', closeOverlayFn); }
+
+  closeVideo.addEventListener('click', closeOverlayFn);
 
   // ====== Botón principal ======
-  if (pulseBtn) {
-    pulseBtn.addEventListener('click', async () => {
-      if (!statusEl) return;
+  pulseBtn.addEventListener('click', async () => {
+    if (!statusEl) return;
 
-      if (alreadyClicked()){
-        statusEl.textContent = 'Gracias 🙌 Ya registraste tu apoyo desde este dispositivo.';
-        return;
-      }
+    if (alreadyClicked()){
+      statusEl.textContent = 'Gracias 🙌 Ya registraste tu apoyo desde este dispositivo.';
+      return;
+    }
 
-      const cid = getClientId();
-      try {
-        await clicksRef.child(cid).set(true);
-        await countRef.transaction((current) => (current === null ? 1 : current + 1));
-        markClicked();
-      } catch (e){
-        console.error(e);
-        alert('Ocurrió un error al registrar tu pulsación. Intenta de nuevo.');
-      }
-    });
-  }
+    const cid = getClientId();
+
+    try {
+      await clicksRef.child(cid).set(true);
+      await countRef.transaction(current => (current === null ? 1 : current + 1));
+      markClicked();
+    } catch (e){
+      console.error(e);
+      alert('Ocurrió un error al registrar tu pulsación.');
+    }
+  });
 
   // ====== Compartir ======
   if (shareLink){
     shareLink.addEventListener('click', (e)=>{
       e.preventDefault();
       const url = window.location.href;
+
       if (navigator.share){
         navigator.share({ title:'Un solo pulso', text:'Ayúdanos a llegar a la meta', url });
       } else {
@@ -198,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (u.hostname.includes('youtu.be'))   return u.pathname.replace('/', '');
       if (u.searchParams.get('v'))           return u.searchParams.get('v');
       if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/shorts/')[1];
-    } catch(_) {}
+    } catch(e){}
     return url;
   }
 
@@ -213,11 +196,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function requestFullScreen(el){
-    if (!el) return;
     try {
-      if (el.requestFullscreen)           return await el.requestFullscreen();
-      if (el.webkitRequestFullscreen)     return el.webkitRequestFullscreen(); // iOS Safari
-      if (el.msRequestFullscreen)         return el.msRequestFullscreen();
-    } catch (_e) { /* fallback */ }
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+      if (el.msRequestFullscreen) return el.msRequestFullscreen();
+    } catch (e){}
   }
+
 });
