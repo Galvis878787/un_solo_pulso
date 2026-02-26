@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   // ====== Parámetros del proyecto (ajústalos si lo deseas) ======
-  const TARGET_COUNT = 2;                            // meta de pulsaciones
+  const TARGET_COUNT = 3;                            // meta de pulsaciones
   const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4';// tu video (formato corto recomendado)
-  const PROJECT_ID   = 'proyecto-2';                  // cambia el ID para "reiniciar" sin borrar datos
+  const PROJECT_ID   = 'proyecto-3';                  // cambia el ID para "reiniciar" sin borrar datos
 
   // ====== Toma de referencias del DOM ======
   const counterEl     = document.getElementById('counter');
