@@ -38,6 +38,32 @@
     <footer>
       <small>Hecho con amor · <a href="#" id="shareLink">Compartir</a></small>
     </footer>
+
+    <!-- ===== Overlay de Video + Cuenta Regresiva (NUEVO) ===== -->
+    <div id="videoOverlay" class="video-overlay hidden" aria-hidden="true">
+      <!-- Botón cerrar -->
+      <button id="closeVideo" class="close-video" aria-label="Cerrar video">✕</button>
+
+      <!-- Cuenta regresiva -->
+      <div id="countdownWrap" class="countdown-wrap">
+        <div class="countdown-number" id="countdownNumber">5</div>
+        <p class="countdown-label">El video iniciará en…</p>
+      </div>
+
+      <!-- Marco del video -->
+      <div class="video-frame-wrap hidden" id="videoFrameWrap">
+        <iframe
+          id="videoFrame"
+          class="video-frame"
+          title="Video"
+          frameborder="0"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowfullscreen
+          referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      </div>
+    </div>
+    <!-- ===== Fin overlay ===== -->
+
   </main>
 
   <!-- Firebase SDK (orden correcto) -->
