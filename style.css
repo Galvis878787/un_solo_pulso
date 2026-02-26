@@ -129,3 +129,8 @@ body.noscroll{ overflow: hidden; }
   letter-spacing:.5px;
   opacity:.95;
 }
+
+/* Asegurar que el overlay SÍ esté oculto cuando tenga .hidden */
+.video-overlay.hidden {
+  display: none !important;
+}

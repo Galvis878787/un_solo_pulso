@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
   // ====== Parámetros del proyecto ======
-  const TARGET_COUNT = 2;                              // meta (para validar rápido). Luego vuelve a 10.
-  const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4'; // tu video
-  const PROJECT_ID   = 'proyecto-6';                   // cambia para “reiniciar” sin borrar
+  const TARGET_COUNT = 2;                               // meta (para validar rápido). Luego vuelve a 10.
+  const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4';  // tu video
+  const PROJECT_ID   = 'proyecto-6';                    // cambia para “reiniciar” sin borrar
 
-  // ====== DOM ======
+  // ====== Referencias del DOM ======
   const counterEl     = document.getElementById('counter');
   const statusEl      = document.getElementById('status');
   const pulseBtn      = document.getElementById('pulseBtn');
@@ -21,8 +21,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const videoFrameWrap = document.getElementById('videoFrameWrap');
   const videoFrame     = document.getElementById('videoFrame');
 
-  if (targetCountEl) targetCountEl.textContent = TARGET_COUNT.toString();
+  // ====== Estado inicial SEGURO (evita overlay visible al cargar) ======
+  if (videoOverlay) videoOverlay.classList.add('hidden');  // garantiza display:none
+  document.body.classList.remove('noscroll');              // habilita scroll por si quedó bloqueado
+
+  // Si usas link a video por compatibilidad, lo actualizamos:
+  if (targetCountEl) targetCountEl.textContent = String(TARGET_COUNT);
   if (videoLink)     videoLink.href = VIDEO_URL;
+
+  // ====== (A partir de aquí continúa tu lógica actual) ======
+  // - Firebase init
+  // - refs a countRef y clicksRef
+  // - anti-multi-clic
+  // - suscripción realtime con 'lastVal' y detección de cruce de meta
+  // - updateStatus(val, shouldOpen)
+  // - startCountdown(), startVideo()
+  // - openOverlay(), closeOverlayFn()
+  // - listener de pulseBtn y shareLink
+  // - utilidades (getYouTubeId, getClientId, requestFullScreen)
+});
 
   // ====== Firebase init ======
   if (typeof firebaseConfig === 'undefined') {
