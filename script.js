@@ -3,10 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ====== Parámetros del proyecto ======
   const TARGET_COUNT = 3;                               // meta temporal para pruebas
   const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4';  // tu video
-  const PROJECT_ID   = 'proyecto-99';                   // ID de campaña
+  const PROJECT_ID   = 'proyecto-100';                   // ID de campaña
 
   // ====== Reproducción diferida ======
-  const DELAY_AUTOPLAY_MS = 4000;                       // 4 segundos antes de iniciar reproducción
+  const DELAY_AUTOPLAY_MS = 9000;                       // 9 segundos antes de iniciar reproducción
   const USE_DELAYED_AUTOPLAY = true;                    // bandera por si quieres revertir luego
 
   // ====== Referencias del DOM ======
