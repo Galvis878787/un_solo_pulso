@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   // ====== Parámetros del proyecto ======
-  const TARGET_COUNT = 2;                               // meta temporal para pruebas
+  const TARGET_COUNT = 3;                               // meta temporal para pruebas
   const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4';  // tu video
   const PROJECT_ID   = 'proyecto-94';                   // ID de campaña
 
