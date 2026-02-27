@@ -3,11 +3,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // ====== Parámetros del proyecto ======
   const TARGET_COUNT = 3;                               // meta temporal para pruebas
   const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4';  // tu video
-  const PROJECT_ID   = 'proyecto-102';                   // ID de campaña
+  const PROJECT_ID   = 'proyecto-103';                   // ID de campaña
 
   // ====== Tiempos ======
-  const COUNTDOWN_START = 5;        // 5 → 1
-  const DELAY_BEFORE_AUTOPLAY = 4000; // ms (4 s) para que el usuario pueda ampliar/activar sonido
+  const COUNTDOWN_START = 5;                  // 5 → 1
+  const DELAY_BEFORE_AUTOPLAY = 4000;         // 4 segundos
 
   // ====== Referencias del DOM ======
   const counterEl     = document.getElementById('counter');
@@ -16,9 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const videoSection  = document.getElementById('videoSection');
   const videoLink     = document.getElementById('videoLink');
   const shareLink     = document.getElementById('shareLink');
-  const targetCountEl = document.getElementById('target-count'); // opcional
+  const targetCountEl = document.getElementById('target-count');
 
-  // Overlay / Countdown / Video
   const videoOverlay   = document.getElementById('videoOverlay');
   const closeVideo     = document.getElementById('closeVideo');
   const countdownWrap  = document.getElementById('countdownWrap');
@@ -26,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const videoFrameWrap = document.getElementById('videoFrameWrap');
   const videoFrame     = document.getElementById('videoFrame');
 
-  // ====== Estado INICIAL SEGURO ======
+  // ====== Estado inicial seguro ======
   if (videoOverlay) videoOverlay.classList.add('hidden');
   document.body.classList.remove('noscroll');
   if (targetCountEl) targetCountEl.textContent = String(TARGET_COUNT);
@@ -43,14 +42,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const countRef  = db.ref(`projects/${PROJECT_ID}/count`);
   const clicksRef = db.ref(`projects/${PROJECT_ID}/clicks`);
 
-  // ====== Anti multi-clic básico ======
+  // ====== Anti multi-clic ======
   const localKey = `clicked_${PROJECT_ID}`;
   const alreadyClicked = () => localStorage.getItem(localKey) === '1';
   const markClicked    = () => localStorage.setItem(localKey, '1');
 
-  // ====== Realtime + detección de transición (para UI) ======
+  // ====== Realtime ======
   let lastVal = null;
-  let playbackStarted = false; // evita dobles disparos
+  let playbackStarted = false;
   let countdownTimer  = null;
   let autoplayTimer   = null;
 
@@ -60,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const crossed = lastVal !== null && lastVal < TARGET_COUNT && val >= TARGET_COUNT;
     updateStatus(val, crossed);
+
     lastVal = val;
   });
 
@@ -69,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (val >= TARGET_COUNT){
       statusEl.textContent = '¡Meta alcanzada! 🎉';
 
-      // Si llegó por realtime pero además este ciclo cruzó la meta
       if (shouldOpen && !playbackStarted){
         playbackStarted = true;
         openOverlay();
@@ -82,14 +81,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ====== Cuenta regresiva → mostrar video (pausado) → esperar 4s → reproducir en silencio ======
+  // ====== Cuenta regresiva → video pausado → delay → autoplay ======
   function startCountdownThenShowVideo(){
-    // 1) Asegurar estados de UI
     if (pulseBtn) pulseBtn.disabled = true;
     videoFrameWrap.classList.add('hidden');
-    countdownWrap.classList.remove('hidden');
 
-    // 2) Contador 5→1
+    countdownWrap.classList.remove('hidden');
     let n = COUNTDOWN_START;
     countdownNumEl.textContent = String(n);
 
@@ -102,23 +99,44 @@ document.addEventListener('DOMContentLoaded', () => {
         countdownTimer = null;
         countdownWrap.classList.add('hidden');
 
-        // 3) Mostrar el video sin reproducción (autoplay=0), con API habilitada
+        // ====== Mostrar video pausado ======
         const ytId   = getYouTubeId(VIDEO_URL);
         const origin = encodeURIComponent(window.location.origin);
-        const embedUrl = `https://www.youtube.com/embed/${ytId}?autoplay=0&controls=1&enablejsapi=1&playsinline=1&rel=0&modestbranding=1&origin=${origin}`;
+        const embedUrl = 
+          `https://www.youtube.com/embed/${ytId}?autoplay=0&controls=1&enablejsapi=1&playsinline=1&rel=0&modestbranding=1&origin=${origin}`;
+
         videoFrame.src = embedUrl;
         videoFrameWrap.classList.remove('hidden');
 
-        // 4) Esperar 4s para que el usuario pueda ampliar pantalla y activar sonido
+        // ====== Esperar 4 segundos → reproducir automáticamente ======
         autoplayTimer = setTimeout(() => {
           try {
-            // Iniciar en silencio para cumplir políticas de autoplay
-            videoFrame.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "mute", args: [] }), "*");
-            videoFrame.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
+            // Mute obligatorio para autoplay en móviles
+            videoFrame.contentWindow?.postMessage(JSON.stringify({ 
+              event: "command", func: "mute", args: [] 
+            }), "*");
+
+            videoFrame.contentWindow?.postMessage(JSON.stringify({ 
+              event: "command", func: "playVideo", args: [] 
+            }), "*");
           } catch(_) {}
+
+          // ====== Intento de fullscreen automático ======
+          try {
+            if (videoOverlay.requestFullscreen){
+              videoOverlay.requestFullscreen();
+            } else if (videoOverlay.webkitRequestFullscreen){
+              videoOverlay.webkitRequestFullscreen(); // Safari
+            } else if (videoOverlay.msRequestFullscreen){
+              videoOverlay.msRequestFullscreen();
+            }
+          } catch(_) {}
+
           if (pulseBtn) pulseBtn.disabled = false;
+
         }, DELAY_BEFORE_AUTOPLAY);
       }
+
     }, 1000);
   }
 
@@ -129,21 +147,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function closeOverlayFn(){
-    // Cancelar timers si existen
     if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
     if (autoplayTimer){ clearTimeout(autoplayTimer); autoplayTimer = null; }
 
-    // Detener y ocultar video
     try {
-      videoFrame.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "stopVideo", args: [] }), "*");
+      videoFrame.contentWindow?.postMessage(JSON.stringify({ 
+        event: "command", func: "stopVideo", args: [] 
+      }), "*");
     } catch(_) {}
+
     videoFrame.src = '';
     videoFrameWrap.classList.add('hidden');
 
-    // Cerrar overlay y restaurar estado
     videoOverlay.classList.add('hidden');
     document.body.classList.remove('noscroll');
     playbackStarted = false;
+
     if (pulseBtn) pulseBtn.disabled = false;
   }
 
@@ -151,8 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ====== Botón principal ======
   pulseBtn.addEventListener('click', async () => {
-    if (!statusEl) return;
-
     if (alreadyClicked()){
       statusEl.textContent = 'Gracias 🙌 Ya registraste tu apoyo desde este dispositivo.';
       return;
@@ -161,11 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
     pulseBtn.disabled = true;
 
     try {
-      // Tomamos el valor previo
       const beforeSnap = await countRef.once('value');
       const beforeVal  = beforeSnap.exists() ? beforeSnap.val() : 0;
 
-      // Transacción para sumar +1 y conocer el valor final
       await countRef.transaction(
         current => (current === null ? 1 : current + 1),
         async (error, committed, afterSnap) => {
@@ -176,7 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
           const afterVal = afterSnap.val();
           const crossed  = beforeVal < TARGET_COUNT && afterVal >= TARGET_COUNT;
 
-          // Si ESTE clic cruzó la meta: countdown → mostrar video (pausado) → 4s → reproducir
           if (crossed && !playbackStarted){
             playbackStarted = true;
             openOverlay();
@@ -185,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       );
 
-      // Marca por dispositivo
       const cid = getClientId();
       await clicksRef.child(cid).set(true);
       markClicked();
@@ -193,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e){
       console.error(e);
       pulseBtn.disabled = false;
-      alert('Ocurrió un error al registrar tu pulsación. Intenta de nuevo.');
+      alert('Ocurrió un error al registrar tu pulsación.');
     }
   });
 
