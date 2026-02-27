@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   // ====== Parámetros del proyecto ======
-  const TARGET_COUNT = 3;                               // meta temporal para pruebas
+  const TARGET_COUNT = 4;                               // meta temporal para pruebas
   const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4';  // tu video
-  const PROJECT_ID   = 'proyecto-94';                   // ID de campaña
+  const PROJECT_ID   = 'proyecto-96';                   // ID de campaña
 
   // ====== Referencias del DOM ======
   const counterEl     = document.getElementById('counter');
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const videoFrameWrap = document.getElementById('videoFrameWrap');
   const videoFrame     = document.getElementById('videoFrame');
 
-  // ====== Estado inicial SEGURO ======
+  // ====== Estado INICIAL SEGURO ======
   if (videoOverlay) videoOverlay.classList.add('hidden');
   document.body.classList.remove('noscroll');
   if (targetCountEl) targetCountEl.textContent = String(TARGET_COUNT);
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const alreadyClicked = () => localStorage.getItem(localKey) === '1';
   const markClicked    = () => localStorage.setItem(localKey, '1');
 
-  // ====== Realtime + detección de transición ======
+  // ====== Realtime + detección de transición (para UI) ======
   let lastVal = null;
   let playbackStarted = false;
   let countdownTimer  = null;
@@ -55,7 +55,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (counterEl) counterEl.textContent = String(val);
 
     const crossed = lastVal !== null && lastVal < TARGET_COUNT && val >= TARGET_COUNT;
-
     updateStatus(val, crossed);
     lastVal = val;
   });
@@ -66,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (val >= TARGET_COUNT){
       statusEl.textContent = '¡Meta alcanzada! 🎉';
 
+      // Evitar doble disparo si ya lo lanzamos desde el propio clic
       if (shouldOpen && !playbackStarted){
         playbackStarted = true;
         openOverlay();
@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     videoFrame.src = embedUrl;
     videoFrameWrap.classList.remove('hidden');
 
+    // Intento de fullscreen al iniciar el video (tercer intento)
     requestFullScreen(videoOverlay).catch(()=>{});
 
     if (pulseBtn) pulseBtn.disabled = false;
@@ -142,20 +143,56 @@ document.addEventListener('DOMContentLoaded', () => {
   pulseBtn.addEventListener('click', async () => {
     if (!statusEl) return;
 
+    // Intento de fullscreen DENTRO del gesto del usuario (primer intento)
+    tryFullscreenOnUserGesture();
+
     if (alreadyClicked()){
       statusEl.textContent = 'Gracias 🙌 Ya registraste tu apoyo desde este dispositivo.';
       return;
     }
 
-    const cid = getClientId();
+    // Evitar doble-clic mientras resolvemos
+    pulseBtn.disabled = true;
 
     try {
+      // Valor antes del clic
+      const beforeSnap = await countRef.once('value');
+      const beforeVal  = beforeSnap.exists() ? beforeSnap.val() : 0;
+
+      // Transacción para sumar +1 y saber el valor final
+      await countRef.transaction(
+        current => (current === null ? 1 : current + 1),
+        async (error, committed, afterSnap) => {
+          // Pase lo que pase, re-habilitamos el botón
+          pulseBtn.disabled = false;
+
+          if (error || !committed || !afterSnap) return;
+
+          const afterVal = afterSnap.val();
+          const crossed  = beforeVal < TARGET_COUNT && afterVal >= TARGET_COUNT;
+
+          // Si ESTE clic cruzó la meta, disparamos overlay + countdown aquí mismo
+          if (crossed && !playbackStarted){
+            playbackStarted = true;
+            openOverlay();
+
+            // Intento adicional de FS, aún cercano al gesto del usuario
+            await requestFullScreen(videoOverlay).catch(()=>{});
+
+            startCountdown(5);
+          }
+        }
+      );
+
+      // Registrar marca por dispositivo (idempotencia simple)
+      const cid = getClientId();
       await clicksRef.child(cid).set(true);
-      await countRef.transaction(current => (current === null ? 1 : current + 1));
       markClicked();
+
     } catch (e){
       console.error(e);
-      alert('Ocurrió un error al registrar tu pulsación.');
+      pulseBtn.disabled = false;
+      alert('Ocurrió un error al registrar tu pulsación. Intenta de nuevo.');
     }
   });
 
@@ -195,6 +232,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return cid;
   }
 
+  // Pide FS dentro del gesto (primer intento)
+  function tryFullscreenOnUserGesture(){
+    if (document.fullscreenElement) return;
+    const el = videoOverlay || document.documentElement;
+    try{
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    }catch(_){}
+  }
+
+  // Helper de FS (usado en overlay y al iniciar video)
   async function requestFullScreen(el){
     try {
       if (el.requestFullscreen) return el.requestFullscreen();
