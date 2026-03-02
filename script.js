@@ -2,12 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ====== Parámetros del proyecto ======
   const TARGET_COUNT = 3;                               // meta temporal para pruebas
-  const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4';  // tu video
-  const PROJECT_ID   = 'proyecto-105';                   // ID de campaña
+  const VIDEO_URL    = 'https://youtu.be/G5AiWQqD9H4';  // tu video (YouTube)
+  const PROJECT_ID   = 'proyecto-105';                  // ID de campaña
 
   // ====== Tiempos ======
-  const COUNTDOWN_START = 5;                  // 5 → 1
-  const DELAY_BEFORE_AUTOPLAY = 4000;         // 4 segundos
+  const COUNTDOWN_START = 5;        // 5 → 1 (cuenta regresiva)
 
   // ====== Referencias del DOM ======
   const counterEl     = document.getElementById('counter');
@@ -24,6 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const countdownNumEl = document.getElementById('countdownNumber');
   const videoFrameWrap = document.getElementById('videoFrameWrap');
   const videoFrame     = document.getElementById('videoFrame');
+  const goFullscreenBtn= document.getElementById('goFullscreen');
+  const replayBtn      = document.getElementById('replay');
 
   // ====== Estado inicial seguro ======
   if (videoOverlay) videoOverlay.classList.add('hidden');
@@ -36,22 +37,21 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('⚠️ No se encontró firebaseConfig. Verifica config.js');
     return;
   }
-  const app = firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
   const db  = firebase.database();
 
   const countRef  = db.ref(`projects/${PROJECT_ID}/count`);
   const clicksRef = db.ref(`projects/${PROJECT_ID}/clicks`);
 
-  // ====== Anti multi-clic ======
+  // ====== Anti multi-clic (una vez por dispositivo) ======
   const localKey = `clicked_${PROJECT_ID}`;
   const alreadyClicked = () => localStorage.getItem(localKey) === '1';
   const markClicked    = () => localStorage.setItem(localKey, '1');
 
   // ====== Realtime ======
   let lastVal = null;
-  let playbackStarted = false;
+  let playbackStarted = false;  // control para no disparar dos veces el overlay
   let countdownTimer  = null;
-  let autoplayTimer   = null;
 
   countRef.on('value', (snap) => {
     const val = snap.exists() ? snap.val() : 0;
@@ -59,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const crossed = lastVal !== null && lastVal < TARGET_COUNT && val >= TARGET_COUNT;
     updateStatus(val, crossed);
-
     lastVal = val;
   });
 
@@ -81,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // ====== Cuenta regresiva → video pausado → delay → autoplay ======
+  // ====== Cuenta regresiva → video → fullscreen + audio ======
   function startCountdownThenShowVideo(){
     if (pulseBtn) pulseBtn.disabled = true;
     videoFrameWrap.classList.add('hidden');
@@ -90,53 +89,55 @@ document.addEventListener('DOMContentLoaded', () => {
     let n = COUNTDOWN_START;
     countdownNumEl.textContent = String(n);
 
-    countdownTimer = setInterval(() => {
+    countdownTimer = setInterval(async () => {
       n--;
       if (n >= 1) {
         countdownNumEl.textContent = String(n);
       } else {
         clearInterval(countdownTimer);
         countdownTimer = null;
+
+        // Ocultar contador y mostrar contenedor del video
         countdownWrap.classList.add('hidden');
-
-        // ====== Mostrar video pausado ======
-        const ytId   = getYouTubeId(VIDEO_URL);
-        const origin = encodeURIComponent(window.location.origin);
-        const embedUrl = 
-          `https://www.youtube.com/embed/${ytId}?autoplay=0&controls=1&enablejsapi=1&playsinline=1&rel=0&modestbranding=1&origin=${origin}`;
-
-        videoFrame.src = embedUrl;
         videoFrameWrap.classList.remove('hidden');
 
-        // ====== Esperar 4 segundos → reproducir automáticamente ======
-        autoplayTimer = setTimeout(() => {
-          try {
-            // Mute obligatorio para autoplay en móviles
-            videoFrame.contentWindow?.postMessage(JSON.stringify({ 
-              event: "command", func: "mute", args: [] 
-            }), "*");
+        // 1) Construir URL del embed de YouTube
+        //    Con enablejsapi=1 para controlar via postMessage
+        const ytId   = getYouTubeId(VIDEO_URL);
+        const origin = encodeURIComponent(window.location.origin);
+        // Autoplay (muted) para “enganchar” el reproductor. Luego haremos unmute al entrar en FS.
+        const embedUrl =
+          `https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=1&enablejsapi=1&playsinline=1&rel=0&modestbranding=1&origin=${origin}`;
 
-            videoFrame.contentWindow?.postMessage(JSON.stringify({ 
-              event: "command", func: "playVideo", args: [] 
-            }), "*");
-          } catch(_) {}
+        videoFrame.src = embedUrl;
 
-          // ====== Intento de fullscreen automático ======
-          try {
-            if (videoOverlay.requestFullscreen){
-              videoOverlay.requestFullscreen();
-            } else if (videoOverlay.webkitRequestFullscreen){
-              videoOverlay.webkitRequestFullscreen(); // Safari
-            } else if (videoOverlay.msRequestFullscreen){
-              videoOverlay.msRequestFullscreen();
-            }
-          } catch(_) {}
+        // 2) Intentar pantalla completa programática SIN gesto del usuario
+        let fsOK = false;
+        try {
+          await enterFullscreen(videoOverlay); // intentamos sobre el overlay (mejor soporte)
+          fsOK = true;
+        } catch (err) {
+          fsOK = false;
+          console.warn('Fullscreen automático bloqueado por el navegador:', err);
+        }
 
-          if (pulseBtn) pulseBtn.disabled = false;
+        // 3) Si estamos en FS, hacemos unmute + play (audio ON)
+        if (fsOK) {
+          // Pequeño delay para que el player esté listo
+          await wait(350);
+          ytCommand('unMute');
+          ytCommand('setVolume', [100]);
+          ytCommand('playVideo');
+        } else {
+          // 4) Si NO fue posible FS automático, mostramos botón de respaldo
+          if (goFullscreenBtn) {
+            goFullscreenBtn.style.display = 'inline-flex';
+          }
+          // El video queda reproduciéndose en silencio hasta que el usuario pida FS.
+        }
 
-        }, DELAY_BEFORE_AUTOPLAY);
+        if (pulseBtn) pulseBtn.disabled = false;
       }
-
     }, 1000);
   }
 
@@ -144,29 +145,52 @@ document.addEventListener('DOMContentLoaded', () => {
   function openOverlay(){
     videoOverlay.classList.remove('hidden');
     document.body.classList.add('noscroll');
+    // Estado UI inicial del overlay
+    goFullscreenBtn && (goFullscreenBtn.style.display = 'none');
+    videoFrameWrap.classList.add('hidden');
+    countdownWrap.classList.remove('hidden');
+    stopAndClearIframe(); // por si quedó algo del ciclo anterior
   }
 
   function closeOverlayFn(){
     if (countdownTimer){ clearInterval(countdownTimer); countdownTimer = null; }
-    if (autoplayTimer){ clearTimeout(autoplayTimer); autoplayTimer = null; }
 
+    // Detener video YouTube y limpiar src
     try {
-      videoFrame.contentWindow?.postMessage(JSON.stringify({ 
-        event: "command", func: "stopVideo", args: [] 
-      }), "*");
+      ytCommand('stopVideo');
     } catch(_) {}
+    stopAndClearIframe();
 
-    videoFrame.src = '';
-    videoFrameWrap.classList.add('hidden');
+    // Salir de pantalla completa (si aplica)
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+    } catch (_) {}
 
+    // Cerrar overlay y restaurar
     videoOverlay.classList.add('hidden');
     document.body.classList.remove('noscroll');
     playbackStarted = false;
-
     if (pulseBtn) pulseBtn.disabled = false;
   }
 
-  if (closeVideo) closeVideo.addEventListener('click', closeOverlayFn);
+  if (closeVideo)  closeVideo.addEventListener('click', closeOverlayFn);
+  if (replayBtn)   replayBtn.addEventListener('click', () => { startCountdownThenShowVideo(); });
+
+  // Botón de respaldo: con este GESTO del usuario, habilitamos FS + audio
+  if (goFullscreenBtn) {
+    goFullscreenBtn.addEventListener('click', async () => {
+      try {
+        await enterFullscreen(videoOverlay);  // ahora SÍ hay gesto del usuario
+        await wait(200);
+        ytCommand('unMute');
+        ytCommand('setVolume', [100]);
+        ytCommand('playVideo');
+        goFullscreenBtn.style.display = 'none';
+      } catch (err) {
+        console.warn('No se pudo entrar en pantalla completa con gesto:', err);
+      }
+    });
+  }
 
   // ====== Botón principal ======
   pulseBtn.addEventListener('click', async () => {
@@ -210,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ====== Compartir ======
+  // ====== Compartir (si existe shareLink) ======
   if (shareLink){
     shareLink.addEventListener('click', (e)=>{
       e.preventDefault();
@@ -245,4 +269,26 @@ document.addEventListener('DOMContentLoaded', () => {
     return cid;
   }
 
+  function stopAndClearIframe(){
+    if (videoFrame) videoFrame.src = '';
+  }
+
+  // Comandos YouTube via postMessage (enablejsapi=1)
+  function ytCommand(func, args = []){
+    if (!videoFrame || !videoFrame.contentWindow) return;
+    const msg = JSON.stringify({ event: 'command', func, args });
+    videoFrame.contentWindow.postMessage(msg, '*');
+  }
+
+  // Fullscreen helpers (overlay es mejor “target” que el iframe)
+  function enterFullscreen(el){
+    if (el.requestFullscreen)            return el.requestFullscreen();
+    if (el.webkitRequestFullscreen)      return el.webkitRequestFullscreen(); // Safari
+    if (el.msRequestFullscreen)          return el.msRequestFullscreen();     // IE/Edge heredado
+    return Promise.reject(new Error('Fullscreen API no disponible o bloqueada.'));
+  }
+
+  function wait(ms){ return new Promise(res => setTimeout(res, ms)); }
+
 });
+``

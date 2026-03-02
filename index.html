@@ -25,7 +25,6 @@
       </div>
 
       <button id="pulseBtn" class="pulse-btn">Presionar</button>
-
       <div class="note">Presiona solo una vez desde tu dispositivo. 💚</div>
 
       <!-- Se mantiene por compatibilidad con flujos anteriores -->
@@ -47,7 +46,7 @@
       <!-- Cuenta regresiva -->
       <div id="countdownWrap" class="countdown-wrap">
         <div class="countdown-number" id="countdownNumber">5</div>
-        <p class="countdown-label"></p>
+        <p class="countdown-label">Comenzando…</p>
       </div>
 
       <!-- Marco del video -->
@@ -58,7 +57,13 @@
           title="Video"
           frameborder="0"
           allow="autoplay; fullscreen; picture-in-picture"
+          allowfullscreen
           referrerpolicy="strict-origin-when-cross-origin"></iframe>
+
+        <div class="video-actions">
+          <button id="goFullscreen" class="btn btn-primary" style="display:none">Ver en pantalla completa</button>
+          <button id="replay" class="btn btn-secondary">Repetir</button>
+        </div>
       </div>
     </div>
     <!-- ===== Fin overlay ===== -->
@@ -69,12 +74,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 
-  <!-- Configuración de Firebase -->
+  <!-- Configuración de Firebase (tu firebaseConfig) -->
   <script src="config.js"></script>
 
   <!-- Lógica de la página -->
   <script src="script.js"></script>
-</body>
-</html>
 </body>
 </html>
